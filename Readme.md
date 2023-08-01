@@ -65,6 +65,10 @@ func main() {
 }
 ```
 
+## Contributors
+
+- Matt Mueller ([@mattmueller](https://twitter.com/mattmueller))
+
 ## License
 
 MIT
