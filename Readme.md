@@ -26,42 +26,42 @@ In the following example, we load the logger which loads the environment:
 package main
 
 import (
-	"fmt"
+  "fmt"
 
-	"github.com/livebud/di"
+  "github.com/livebud/di"
 )
 
 type Env struct {
-	DatabaseURL string
+  DatabaseURL string
 }
 
 func provideEnv(in di.Injector) (*Env, error) {
-	return &Env{
-		DatabaseURL: "postgres://localhost:5432/db",
-	}, nil
+  return &Env{
+    DatabaseURL: "postgres://localhost:5432/db",
+  }, nil
 }
 
 type Log struct {
-	env *Env
+  env *Env
 }
 
 func provideLog(in di.Injector) (*Log, error) {
-	env, err := di.Load[*Env](in)
-	if err != nil {
-		return nil, err
-	}
-	return &Log{env}, nil
+  env, err := di.Load[*Env](in)
+  if err != nil {
+    return nil, err
+  }
+  return &Log{env}, nil
 }
 
 func main() {
-	in := di.New()
-	di.Provide(in, provideEnv)
-	di.Provide(in, provideLog)
-	log, err := di.Load[*Log](in)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(log.env.DatabaseURL)
+  in := di.New()
+  di.Provide(in, provideEnv)
+  di.Provide(in, provideLog)
+  log, err := di.Load[*Log](in)
+  if err != nil {
+    panic(err)
+  }
+  fmt.Println(log.env.DatabaseURL)
 }
 ```
 
