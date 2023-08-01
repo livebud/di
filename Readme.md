@@ -23,14 +23,6 @@ go get github.com/livebud/di
 In the following example, we load the logger which loads the environment:
 
 ```go
-package main
-
-import (
-  "fmt"
-
-  "github.com/livebud/di"
-)
-
 type Env struct {
   DatabaseURL string
 }
@@ -58,9 +50,6 @@ func main() {
   di.Provide(in, provideEnv)
   di.Provide(in, provideLog)
   log, err := di.Load[*Log](in)
-  if err != nil {
-    panic(err)
-  }
   fmt.Println(log.env.DatabaseURL)
 }
 ```
