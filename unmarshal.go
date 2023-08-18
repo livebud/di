@@ -7,11 +7,11 @@ import (
 	"github.com/livebud/di/internal/reflector"
 )
 
-func Unmarshal[Context any](in Injector) (ctx Context, err error) {
-	if err := unmarshal(in, &ctx); err != nil {
-		return ctx, err
+func Unmarshal(in Injector, ctx any) (err error) {
+	if err := unmarshal(in, ctx); err != nil {
+		return err
 	}
-	return ctx, nil
+	return nil
 }
 
 func unmarshal(in Injector, ctx any) error {

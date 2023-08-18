@@ -17,7 +17,8 @@ func TestUnmarshal(t *testing.T) {
 	in := di.New()
 	di.Provide(in, loadEnv)
 	di.Provide(in, loadLog)
-	ctx, err := di.Unmarshal[Context](in)
+	var ctx Context
+	err := di.Unmarshal(in, &ctx)
 	is.NoErr(err)
 	is.Equal(ctx.Env.name, "production")
 	is.Equal(ctx.Log.lvl, "info")
@@ -28,7 +29,8 @@ func TestUnmarshalPointer(t *testing.T) {
 	in := di.New()
 	di.Provide(in, loadEnv)
 	di.Provide(in, loadLog)
-	ctx, err := di.Unmarshal[*Context](in)
+	var ctx Context
+	err := di.Unmarshal(in, &ctx)
 	is.NoErr(err)
 	is.Equal(ctx.Env.name, "production")
 	is.Equal(ctx.Log.lvl, "info")
