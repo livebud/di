@@ -16,6 +16,12 @@ func Middleware(parent Injector) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			in := Clone(parent)
+			Provide[http.ResponseWriter](in, func(in Injector) (http.ResponseWriter, error) {
+				return w, nil
+			})
+			Provide[*http.Request](in, func(in Injector) (*http.Request, error) {
+				return r, nil
+			})
 			Provide[context.Context](in, func(in Injector) (context.Context, error) {
 				return r.Context(), nil
 			})
