@@ -2,6 +2,7 @@ package reflector_test
 
 import (
 	"errors"
+	"net/http"
 	"reflect"
 	"testing"
 
@@ -36,6 +37,18 @@ func TestName(t *testing.T) {
 	name, err = reflector.TypeOf(customFunc(func() int { return 0 }))
 	is.NoErr(err)
 	is.Equal(name, "github.com/livebud/di/internal/reflector_test.customFunc")
+}
+
+type middlewares []func(http.Handler) http.Handler
+
+func TestSliceOfFunctions(t *testing.T) {
+	is := is.New(t)
+	name, err := reflector.TypeOf(middlewares{})
+	is.NoErr(err)
+	is.Equal(name, "github.com/livebud/di/internal/reflector_test.middlewares")
+	name, err = reflector.TypeOf(&middlewares{})
+	is.NoErr(err)
+	is.Equal(name, "github.com/livebud/di/internal/reflector_test.*middlewares")
 }
 
 func TestNoName(t *testing.T) {

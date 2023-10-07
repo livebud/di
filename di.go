@@ -7,13 +7,13 @@ import (
 	"github.com/livebud/di/internal/reflector"
 )
 
-var ErrNoProvider = fmt.Errorf("di: no provider")
+var ErrNoLoader = fmt.Errorf("di: no loader")
 
 func New() Injector {
 	return &injector{
-		fns:        make(map[string]any),
-		cache:      make(map[string]any),
-		registered: make(map[string][]any),
+		loaders: make(map[string]any),
+		cache:   make(map[string]any),
+		appends: make(map[string][]any),
 	}
 }
 
@@ -24,67 +24,67 @@ func Clone(in Injector) Injector {
 
 type Injector interface {
 	clone() Injector
-	setProvider(name string, provider any) error
-	register(name string, provider any) error
-	registrants(name string) (registrants []any, ok bool)
-	getProvider(name string) (provider any, ok bool)
+	setLoader(name string, loader any) error
+	append(name string, loader any) error
+	getAppends(name string) (registrants []any, ok bool)
+	getLoader(name string) (loader any, ok bool)
 	setCache(name string, dep any)
 	getCache(name string) (dep any, ok bool)
 }
 
 type injector struct {
-	mu         sync.RWMutex
-	fns        map[string]any
-	cache      map[string]any
-	registered map[string][]any
+	mu      sync.RWMutex
+	loaders map[string]any
+	cache   map[string]any
+	appends map[string][]any
 }
 
 var _ Injector = (*injector)(nil)
 
 func (in *injector) clone() Injector {
 	clone := New()
-	for name, provider := range in.fns {
-		clone.setProvider(name, provider)
+	for name, provider := range in.loaders {
+		clone.setLoader(name, provider)
 	}
 	for name, dep := range in.cache {
 		clone.setCache(name, dep)
 	}
-	for name, registrants := range in.registered {
+	for name, registrants := range in.appends {
 		for _, registrant := range registrants {
-			clone.register(name, registrant)
+			clone.append(name, registrant)
 		}
 	}
 	return clone
 }
 
-func (in *injector) setProvider(name string, provider any) error {
+func (in *injector) setLoader(name string, provider any) error {
 	in.mu.Lock()
 	defer in.mu.Unlock()
-	in.fns[name] = provider
+	in.loaders[name] = provider
 	return nil
 }
 
-func (in *injector) register(name string, provider any) error {
+func (in *injector) append(name string, provider any) error {
 	in.mu.Lock()
 	defer in.mu.Unlock()
-	if _, ok := in.registered[name]; !ok {
-		in.registered[name] = []any{}
+	if _, ok := in.appends[name]; !ok {
+		in.appends[name] = []any{}
 	}
-	in.registered[name] = append(in.registered[name], provider)
+	in.appends[name] = append(in.appends[name], provider)
 	return nil
 }
 
-func (in *injector) registrants(name string) (registrants []any, ok bool) {
+func (in *injector) getAppends(name string) (registrants []any, ok bool) {
 	in.mu.RLock()
 	defer in.mu.RUnlock()
-	registrants, ok = in.registered[name]
+	registrants, ok = in.appends[name]
 	return registrants, ok
 }
 
-func (in *injector) getProvider(name string) (provider any, ok bool) {
+func (in *injector) getLoader(name string) (provider any, ok bool) {
 	in.mu.RLock()
 	defer in.mu.RUnlock()
-	if fn, ok := in.fns[name]; ok {
+	if fn, ok := in.loaders[name]; ok {
 		return fn, ok
 	}
 	return nil, false
@@ -103,25 +103,28 @@ func (in *injector) getCache(name string) (dep any, ok bool) {
 	return dep, ok
 }
 
-func Provide[Dep any](in Injector, fn func(in Injector) (d Dep, err error)) error {
+func Loader[Dep any](in Injector, fn func(in Injector) (d Dep, err error)) error {
 	var dep Dep
 	name, err := reflector.TypeOf(dep)
 	if err != nil {
 		return err
 	}
-	in.setProvider(name, fn)
+	in.setLoader(name, fn)
 	return nil
 }
 
-func Register[To any](in Injector, fn func(in Injector, to To) error) error {
-	var to To
-	name, err := reflector.TypeOf(to)
+// Append a loader to a dependency. These loaders will be called after the
+// dependency is loaded.
+func Append[Dep any](in Injector, loader func(in Injector, dep Dep) error) error {
+	var dep Dep
+	name, err := reflector.TypeOf(dep)
 	if err != nil {
 		return err
 	}
-	return in.register(name, fn)
+	return in.append(name, loader)
 }
 
+// Load a dependency from an injector and cache the result for future loads
 func Load[Dep any](in Injector) (dep Dep, err error) {
 	name, err := reflector.TypeOf(dep)
 	if err != nil {
@@ -130,9 +133,9 @@ func Load[Dep any](in Injector) (dep Dep, err error) {
 	if dep, ok := in.getCache(name); ok {
 		return dep.(Dep), nil
 	}
-	v, ok := in.getProvider(name)
+	v, ok := in.getLoader(name)
 	if !ok {
-		return dep, fmt.Errorf("%w for %s", ErrNoProvider, name)
+		return dep, fmt.Errorf("%w for %s", ErrNoLoader, name)
 	}
 	fn, ok := v.(func(in Injector) (Dep, error))
 	if !ok {
@@ -142,7 +145,7 @@ func Load[Dep any](in Injector) (dep Dep, err error) {
 	if err != nil {
 		return dep, fmt.Errorf("di: unable to load %q: %w", name, err)
 	}
-	registrants, ok := in.registrants(name)
+	registrants, ok := in.getAppends(name)
 	if ok {
 		for _, registrant := range registrants {
 			fn, ok := registrant.(func(in Injector, dep Dep) error)
@@ -157,22 +160,3 @@ func Load[Dep any](in Injector) (dep Dep, err error) {
 	in.setCache(name, d)
 	return d, nil
 }
-
-// Preload is a convenience around load that allows di to cache providers
-// before they're needed.
-func Preload[Dep any](in Injector) (err error) {
-	if _, err := Load[Dep](in); err != nil {
-		return err
-	}
-	return nil
-}
-
-// func Print(in Injector) string {
-// 	providers := in.listProviders()
-// 	return fmt.Sprintf("di: %d providers\n%s", len(providers), providers)
-// 	// var s string
-// 	// for name := range in.(*injector).fns {
-// 	// 	s += name + "\n"
-// 	// }
-// 	// return s
-// }

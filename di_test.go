@@ -33,8 +33,8 @@ func loadLog(in di.Injector) (*Log, error) {
 func TestDI(t *testing.T) {
 	is := is.New(t)
 	in := di.New()
-	di.Provide(in, loadEnv)
-	di.Provide(in, loadLog)
+	di.Loader(in, loadEnv)
+	di.Loader(in, loadLog)
 	log, err := di.Load[*Log](in)
 	is.NoErr(err)
 	is.Equal(log.lvl, "info")
@@ -43,25 +43,25 @@ func TestDI(t *testing.T) {
 func TestClone(t *testing.T) {
 	is := is.New(t)
 	in := di.New()
-	di.Provide(in, loadEnv)
+	di.Loader(in, loadEnv)
 	in2 := di.Clone(in)
 	env, err := di.Load[*Env](in2)
 	is.NoErr(err)
 	is.Equal(env.name, "production")
-	di.Provide(in2, loadLog)
+	di.Loader(in2, loadLog)
 	log, err := di.Load[*Log](in2)
 	is.NoErr(err)
 	is.Equal(log.lvl, "info")
 	log, err = di.Load[*Log](in)
 	is.True(err != nil)
-	is.True(errors.Is(err, di.ErrNoProvider))
+	is.True(errors.Is(err, di.ErrNoLoader))
 	is.Equal(log, nil)
 }
 
-func ExampleProvide() {
+func ExampleLoader() {
 	in := di.New()
-	di.Provide(in, loadEnv)
-	di.Provide(in, loadLog)
+	di.Loader(in, loadEnv)
+	di.Loader(in, loadLog)
 	log, err := di.Load[*Log](in)
 	if err != nil {
 		panic(err)

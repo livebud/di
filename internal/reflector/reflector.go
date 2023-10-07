@@ -2,13 +2,12 @@ package reflector
 
 import (
 	"fmt"
-	"path"
 	"reflect"
-	"strings"
 )
 
 var ErrNoName = fmt.Errorf("reflector: no name")
 
+// TypeOf takes a generic and returns a string representation of its type.
 func TypeOf[V any](v V) (string, error) {
 	t := reflect.TypeOf(v)
 	if t == nil {
@@ -17,55 +16,17 @@ func TypeOf[V any](v V) (string, error) {
 	return Type(t)
 }
 
+// Type takes a reflect.Type and returns a string representation of it.
 func Type(t reflect.Type) (string, error) {
-	prefix, inner, err := innermost("", t)
-	if err != nil {
-		return "", err
-	}
-	if inner.Name() == "" {
-		return "", fmt.Errorf("%w for %s", ErrNoName, t)
-	}
-	key, err := toString(prefix, inner)
-	if err != nil {
-		return "", err
-	}
-	return key, nil
-}
-
-func innermost(prefix string, t reflect.Type) (string, reflect.Type, error) {
-	switch t.Kind() {
-	case reflect.Ptr:
-		return innermost(prefix+"*", t.Elem())
-	case reflect.Slice:
-		return innermost(prefix+"[]", t.Elem())
-	case reflect.Map:
-		key, innerKey, err := innermost("", t.Key())
-		if err != nil {
-			return "", nil, err
-		}
-		key, err = toString(key, innerKey)
-		if err != nil {
-			return "", nil, err
-		}
-		return innermost(prefix+"map["+key+"]", t.Elem())
-	default:
-		return prefix, t, nil
-	}
-}
-
-func toString(prefix string, t reflect.Type) (string, error) {
-	typeName := t.String()
-	typeParts := strings.SplitN(typeName, ".", 2)
-	dir := ""
-	if len(typeParts) == 2 {
-		dir = typeParts[0]
-		typeName = typeParts[1]
+	prefix := ""
+	if t.Kind() == reflect.Ptr {
+		prefix = "*"
+		t = t.Elem()
 	}
 	pkgPath := t.PkgPath()
-	if pkgPath == "" {
-		return "", fmt.Errorf("%w for %s", ErrNoName, t)
-	} else if strings.HasPrefix(pkgPath, "/") {
-		return path.Dir(pkgPath) + "/" + dir + "." + prefix + typeName, nil
+	name := t.Name()
+	if pkgPath != "" && name != "" {
+		return pkgPath + "." + prefix + name, nil
 	}
-	return pkgPath + "." + prefix + typeName, nil
+	return "", fmt.Errorf("%w for %s", ErrNoName, t)
 }

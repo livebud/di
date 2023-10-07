@@ -43,9 +43,9 @@ func unmarshal(in Injector, ctx any) error {
 			fieldValue.Set(reflect.ValueOf(c))
 			continue
 		}
-		v, ok := in.getProvider(typeString)
+		v, ok := in.getLoader(typeString)
 		if !ok {
-			return fmt.Errorf("%w for %s", ErrNoProvider, typeString)
+			return fmt.Errorf("%w for %s", ErrNoLoader, typeString)
 		}
 		results := reflect.ValueOf(v).Call([]reflect.Value{reflect.ValueOf(in)})
 		if len(results) != 2 {

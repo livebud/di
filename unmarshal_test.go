@@ -15,8 +15,8 @@ type Context struct {
 func TestUnmarshal(t *testing.T) {
 	is := is.New(t)
 	in := di.New()
-	di.Provide(in, loadEnv)
-	di.Provide(in, loadLog)
+	di.Loader(in, loadEnv)
+	di.Loader(in, loadLog)
 	var ctx Context
 	err := di.Unmarshal(in, &ctx)
 	is.NoErr(err)
@@ -27,8 +27,8 @@ func TestUnmarshal(t *testing.T) {
 func TestUnmarshalPointer(t *testing.T) {
 	is := is.New(t)
 	in := di.New()
-	di.Provide(in, loadEnv)
-	di.Provide(in, loadLog)
+	di.Loader(in, loadEnv)
+	di.Loader(in, loadLog)
 	var ctx Context
 	err := di.Unmarshal(in, &ctx)
 	is.NoErr(err)
