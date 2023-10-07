@@ -1,3 +1,7 @@
+# 0.0.5 / 2023-10-07
+
+- bring middleware back
+
 # 0.0.4 / 2023-10-07
 
 - rework di's API to focus more on passing injector through context
