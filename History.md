@@ -1,3 +1,8 @@
+# 0.0.4 / 2023-10-07
+
+- rework di's API to focus more on passing injector through context
+- fix tests
+
 # 0.0.3 / 2023-08-21
 
 - add staticcheck and go vet to precommit hook
