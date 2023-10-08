@@ -115,9 +115,9 @@ func Loader[Dep any](in Injector, fn func(in Injector) (d Dep, err error)) error
 
 // Append a loader to a dependency. These loaders will be called after the
 // dependency is loaded.
-func Append[Dep any](in Injector, loader func(in Injector, dep Dep) error) error {
-	var dep Dep
-	name, err := reflector.TypeOf(dep)
+func Append[To any](in Injector, loader func(in Injector, to To) error) error {
+	var to To
+	name, err := reflector.TypeOf(to)
 	if err != nil {
 		return err
 	}
